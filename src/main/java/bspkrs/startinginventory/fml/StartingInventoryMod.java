@@ -1,7 +1,7 @@
 package bspkrs.startinginventory.fml;
 
 import net.minecraft.server.MinecraftServer;
-import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.Mod.Instance;
@@ -13,19 +13,17 @@ import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
-import bspkrs.bspkrscore.fml.bspkrsCoreMod;
 import bspkrs.startinginventory.CommandStartingInv;
 import bspkrs.startinginventory.StartingInventory;
 import bspkrs.util.Const;
-import bspkrs.util.ModVersionChecker;
+import net.minecraftforge.fml.common.network.NetworkCheckHandler;
+import net.minecraftforge.fml.relauncher.Side;
 
-@Mod(modid = Reference.MODID, name = Reference.NAME, version = "@MOD_VERSION@", dependencies = "required-after:bspkrsCore@[@BSCORE_VERSION@,)", useMetadata = true)
+import java.util.Map;
+
+@Mod(modid = Reference.MODID, name = Reference.NAME, version = "@MOD_VERSION@", dependencies = "required-after:bspkrsCore@[@BSCORE_VERSION@,)", useMetadata = true, updateJSON = Const.VERSION_URL_BASE + Reference.MODID + Const.VERSION_URL_EXT)
 public class StartingInventoryMod
 {
-    protected static ModVersionChecker versionChecker;
-    private final String               versionURL = Const.VERSION_URL + "/Minecraft/" + Const.MCVERSION + "/startingInventoryForge.version";
-    private final String               mcfTopic   = "http://www.minecraftforum.net/topic/1009577-";
-
     public MinecraftServer             server;
 
     @Metadata(value = Reference.MODID)
@@ -37,23 +35,22 @@ public class StartingInventoryMod
     @Instance(value = Reference.MODID)
     public static StartingInventoryMod instance;
 
+    @NetworkCheckHandler
+    public boolean checkModList(Map<String, String> versions, Side side)
+    {
+        return true;
+    }
+
     @EventHandler
     public void preInit(FMLPreInitializationEvent event)
     {
-        metadata = event.getModMetadata();
     }
 
     @EventHandler
     public void init(FMLInitializationEvent event)
     {
         proxy.registerClientTicker();
-        FMLCommonHandler.instance().bus().register(new NetworkHandler());
-
-        if (bspkrsCoreMod.instance.allowUpdateCheck)
-        {
-            versionChecker = new ModVersionChecker(metadata.name, metadata.version, versionURL, mcfTopic);
-            versionChecker.checkVersionWithLogging();
-        }
+        MinecraftForge.EVENT_BUS.register(new NetworkHandler());
     }
 
     @EventHandler

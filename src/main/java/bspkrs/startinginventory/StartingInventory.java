@@ -16,6 +16,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.JsonToNBT;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.storage.SaveHandler;
 import net.minecraftforge.fml.common.FMLLog;
 import net.minecraftforge.fml.common.registry.GameData;
@@ -30,7 +31,7 @@ public class StartingInventory
     private static String                  configPath       = "/config/";
     private static final String            NEW_LINE_STR     = "<_newline_>";
     private static final String            NEW_LINE_ALT_STR = ">newline<";
-    private static File                    file             = new File(new File(CommonUtils.getMinecraftDir()), configPath + fileName);
+    private static File                    file             = new File(CommonUtils.getMinecraftDir(), configPath + fileName);
     private static Scanner                 scan;
     private static Map<Integer, ItemStack> itemMap          = new TreeMap<Integer, ItemStack>();
     private static List<ItemStack>         itemList         = new ArrayList<ItemStack>();
@@ -42,7 +43,7 @@ public class StartingInventory
                                                             "#     36-39: armor inventory in the order boots, leggings, chestplate, helmet",
                                                             "# If a given index is out of range the mod will attempt to load that item into the first available inventory slot after adding all other items.",
                                                             "[36]minecraft:leather_boots, 1", "[37]minecraft:leather_leggings, 1", "[38]minecraft:leather_chestplate, 1",
-                                                            "[39]minecraft:leather_chestplate, 1", "minecraft:stone_pickaxe, 1", "minecraft:stone_shovel, 1",
+                                                            "[39]minecraft:leather_helmet, 1", "minecraft:stone_pickaxe, 1", "minecraft:stone_shovel, 1",
                                                             "minecraft:stone_sword, 1", "minecraft:stone_axe, 1", "minecraft:apple, 16", "minecraft:torch, 16"
                                                             };
 
@@ -53,7 +54,7 @@ public class StartingInventory
         else
             try
             {
-                scan = new Scanner(file);
+                scan = new Scanner(file, "UTF-8");
             }
             catch (Throwable e)
             {
@@ -64,9 +65,8 @@ public class StartingInventory
 
     public static boolean isPlayerNewToWorld(MinecraftServer server, EntityPlayer player)
     {
-        SaveHandler saveHandler = (SaveHandler) server.worldServerForDimension(0).getSaveHandler();
-        File dir = new File(saveHandler.getWorldDirectory(), "/StartingInv");
-        return !dir.exists() || !(new File(dir, player.getGameProfile().getName() + ".si")).exists();
+        File dir = getStartingInventoryDirectory(server);
+        return !dir.exists() || !getPlayerFile(dir, player).exists();
     }
 
     public static boolean isPlayerInventoryEmpty(InventoryPlayer inv)
@@ -84,18 +84,17 @@ public class StartingInventory
 
     public static boolean createPlayerFile(MinecraftServer server, EntityPlayer player)
     {
-        SaveHandler saveHandler = (SaveHandler) server.worldServerForDimension(0).getSaveHandler();
-        File dir = new File(saveHandler.getWorldDirectory(), "/StartingInv");
+        File dir = getStartingInventoryDirectory(server);
 
         if (!dir.exists() && !dir.mkdir())
             return false;
 
-        File pFile = new File(dir, player.getGameProfile().getName() + ".si");
+        File pFile = getPlayerFile(dir, player);
 
         try
         {
             pFile.createNewFile();
-            PrintWriter out = new PrintWriter(new FileWriter(pFile));
+            PrintWriter out = new PrintWriter(pFile, "UTF-8");
             out.println("I was here!");
             out.close();
             return true;
@@ -105,6 +104,17 @@ public class StartingInventory
         {
             return false;
         }
+    }
+
+    private static File getStartingInventoryDirectory(MinecraftServer server)
+    {
+        SaveHandler saveHandler = (SaveHandler) server.worldServerForDimension(0).getSaveHandler();
+        return new File(saveHandler.getWorldDirectory(), "/StartingInv");
+    }
+
+    private static File getPlayerFile(File dir, EntityPlayer player)
+    {
+        return new File(dir, player.getGameProfile().getId().toString() + ".si");
     }
 
     public static boolean addItems(EntityPlayer player)
@@ -181,9 +191,10 @@ public class StartingInventory
                 }
 
                 String[] item = parseLine(line);
-                if (GameData.getItemRegistry().getObject(item[0]) != null)
+                ResourceLocation rlItem = new ResourceLocation(item[0]);
+                if (GameData.getItemRegistry().getObject(rlItem) != null)
                 {
-                    ItemStack itemStack = new ItemStack(GameData.getItemRegistry().getObject(item[0]), CommonUtils.parseInt(item[1]), CommonUtils.parseInt(item[2]));
+                    ItemStack itemStack = new ItemStack(GameData.getItemRegistry().getObject(rlItem), CommonUtils.parseInt(item[1]), CommonUtils.parseInt(item[2]));
                     if (!item[3].isEmpty())
                     {
                         try
@@ -223,7 +234,7 @@ public class StartingInventory
         try
         {
             file.createNewFile();
-            PrintWriter out = new PrintWriter(new FileWriter(file));
+            PrintWriter out = new PrintWriter(file, "UTF-8");
 
             for (String s : defaultItems)
             {
@@ -232,7 +243,7 @@ public class StartingInventory
 
             out.close();
 
-            scan = new Scanner(file);
+            scan = new Scanner(file, "UTF-8");
 
         }
         catch (Exception exception)
@@ -250,7 +261,7 @@ public class StartingInventory
 
             file.createNewFile();
 
-            PrintWriter out = new PrintWriter(new FileWriter(file));
+            PrintWriter out = new PrintWriter(file, "UTF-8");
 
             for (int i = 0; i < player.inventory.getSizeInventory(); i++)
             {
@@ -275,7 +286,7 @@ public class StartingInventory
 
             out.close();
 
-            scan = new Scanner(file);
+            scan = new Scanner(file, "UTF-8");
 
         }
         catch (Exception exception)
